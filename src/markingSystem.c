@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 #include <time.h>
 #include <fcntl.h>
+#include <semaphore.h>
 
 
 /**
@@ -28,7 +29,7 @@ void load_rubric(const char *file, Rubric *rubric) {
     char ans;
 
     for(int i = 0; i < NUM; i++) {
-        if(fscanf(f, "%d, %c", &num, &ans) == 2) { //Checks if line is formatted correctly
+        if(fscanf(f, "%d, %c", &num, &ans) == 2) { //Checks if line is formatted correctly (number, character)
             rubric->ans[i] = ans; //sets rubric answer for each question
         }
     }
@@ -179,7 +180,22 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    load_rubric("rubric.txt", shared_mem_rubric);   //load rubric file into shared memory
+    //Create semaphore for rubric
+    sem_t *sem_rubric = sem_open("/sem_rubric", O_CREAT, 0644, 1);
+    if(sem_rubric == SEM_FAILED) {
+        perror("Failed to create semaphore for rubric");
+        exit(1);
+    }
+
+    //Create and initialize semaphore for exam
+    sem_t *sem_exam = sem_open("/sem_exam", O_CREAT, 0644, 1);
+    if(sem_exam == SEM_FAILED) {
+        perror("Failed to create semaphore for rubric");
+        exit(1);
+    }
+    
+    //load rubric file into shared memory
+    load_rubric("rubric.txt", shared_mem_rubric);   
     //----------------------------------------------------------------------------------------//
 
     //Create processses for each TA using fork
@@ -192,8 +208,14 @@ int main(int argc, char *argv[]) {
             int exam_num = 1;
 
             while(load_exam(shared_mem_exam, exam_num)) {   //load exam file into shared memory   
+                sem_wait(sem_rubric); 
                 iterate_rubric(i, shared_mem_rubric);
+                sem_post(sem_rubric);
+            
+                sem_wait(sem_exam);
                 mark(i, shared_mem_exam);
+                sem_post(sem_exam);
+
                 exam_num++;
             }
 
@@ -206,10 +228,16 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    //Parent process waits for the TAs 
+    //Parent process waits for the TAs to finish
     for(int i = 0; i < TA; i++) {
         wait(NULL); 
     }
+
+    //remove semaphores from memory
+    sem_close(sem_rubric);
+    sem_unlink("/sem_rubric");
+    sem_close(sem_exam);
+    sem_unlink("/sem_exam");
 
     //deallocate shared memory
     munmap(shared_mem_rubric, sizeof(Rubric));
