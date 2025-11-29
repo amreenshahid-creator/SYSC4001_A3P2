@@ -8,9 +8,44 @@
 #include <unistd.h>
 
 #include <sys/mman.h>
+#include <time.h>
 
 
+/**
+ * Before marking an exam, the TA will iterate through the lines of the rubric 
+ * - Can decide if the rubric needs to be fixed randomly 
+ * - If change is needed, character corresponding to a question is changed to the next ASCII code
+ */
+void iterate_rubric(int ID, Rubric *rubric) {
+    srand(time(NULL) + get_pid()); //seeds the random number generator with current time
 
+    printf("TA %d is accessing the rubric\n", ID);
+
+
+    for(int i = 0; i < NUM; i++) {
+        float delay = 0.5 + (rand() % 501) / 1000; //random delay between 0.5 and 1.0 seconds
+        usleep(delay * 1000000); //convert to microseconds and sleep
+
+        float change = 0.5; //Set probability of change to 50%
+
+        //If change, update answer to next ASCII character
+        if((float)rand() / RAND_MAX < change) {
+            char prev_answer = rubric->ans[i];
+            char curr_answer = prev_answer + 1; 
+            rubric->ans[i] = curr_answer;
+
+            printf("TA %d changed rubric for question %d\n", ID, i + 1);
+            printf("Previous answer: %c\n Current answer: %c\n", prev_answer, curr_answer);
+        }
+
+        //If no change, continue
+        else {
+            continue;
+        }
+    }
+
+    printf("TA %d is done accessing the rubric\n", ID);
+}
 
 
 
@@ -24,7 +59,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    //------------- Before creating processes, we have to create shared memory -------------//
+    //------------- before creating processes, we have to create shared memory -------------//
 
     //Create shared rubric memory
     Rubric *shared_mem_rubric = mmap(NULL, sizeof(Rubric), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
@@ -49,8 +84,8 @@ int main(int argc, char *argv[]) {
         pid_t pid = fork();
 
         if(pid == 0) { //Child Process
-            printf("TA %d's PID is %d\n", i, getpid());
-            exit(0);
+            iterate_rubric(i, shared_mem_rubric);
+            exit(0); 
         }
 
         else if(pid < 0) {

@@ -13,16 +13,16 @@
 
 //Create a struct for the rubric 
 
-struct Rubric {
+typedef struct Rubric {
     char ans[NUM];  //The corresponding letter for the question number 
-};
+}Rubric;
 
 //Create a struct for the exam
 
-struct Exam {
-    bool marked;      //Checks if question has been marked 
+typedef struct Exam {
+    bool marked[NUM];      //Checks if question has been marked 
     char stud[NUM];   //The student number of the student whose exam is being marked
-};
+}Exam;
 
 
 #endif
