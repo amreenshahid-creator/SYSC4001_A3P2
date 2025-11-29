@@ -20,7 +20,7 @@ typedef struct Rubric {
 
 typedef struct Exam {
     bool marked[NUM];      //Checks if question has been marked 
-    char stud[NUM];   //The student number of the student whose exam is being marked
+    char stud[16];   //The student number of the student whose exam is being marked
 }Exam;
 
 

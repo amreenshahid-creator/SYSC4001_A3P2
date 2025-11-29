@@ -12,6 +12,31 @@
 
 
 /**
+ * Loads the given rubric into shared memory
+ */
+void load_rubric(const char *file, Rubric *rubric) {
+    //Open the file for reading
+    FILE *f = fopen(file, "r");
+
+    //Checks if file exists
+    if(f == NULL) {
+        perror("Failed to open rubric file");
+        exit(1);
+    }
+
+    int num;
+    char ans;
+
+    for(int i = 0; i < NUM; i++) {
+        if(fscanf(f, "%d, %c", &num, &ans) == 2) { //Checks if line is formatted correctly
+            rubric->ans[i] = ans; //sets rubric answer for each question
+        }
+    }
+
+    fclose(f);
+}
+
+/**
  * Loads the given exam number into shared memory
  */
 bool load_exam(Exam *shared_mem_exam, int exam_num) {
@@ -20,6 +45,12 @@ bool load_exam(Exam *shared_mem_exam, int exam_num) {
 
     //Open the file for reading
     FILE *file = fopen(filename, "r");
+
+    //Checks if file exists
+    if(file == NULL) {
+        perror("Failed to open exam file");
+        exit(1);
+    }
 
     char line[256];
     fgets(line, sizeof(line), file);
@@ -65,6 +96,16 @@ void iterate_rubric(int ID, Rubric *rubric) {
 
             printf("TA %d changed rubric for question %d\n", ID, i + 1);
             printf("Previous answer: %c\n Current answer: %c\n", prev_answer, curr_answer);
+
+            //SAVE CHANGES TO RUBRIC, write to file
+            FILE *file = fopen("rubric.txt", "w");
+
+            //Update each line of the rubric
+            for(int j = 0; j < NUM; j++) {
+                fprintf(file, "%d, %c\n", j + 1, rubric->ans[j]);   
+            }
+
+            fclose(file);
         }
 
         //If no change, continue
