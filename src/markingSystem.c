@@ -96,7 +96,7 @@ void iterate_rubric(int ID, Rubric *rubric) {
             rubric->ans[i] = curr_answer;
 
             printf("TA %d changed rubric for question %d\n", ID, i + 1);
-            printf("Previous answer: %c\n Current answer: %c\n", prev_answer, curr_answer);
+            printf("   Previous answer: %c\n   Current answer: %c\n", prev_answer, curr_answer);
 
             //SAVE CHANGES TO RUBRIC, write to file
             FILE *file = fopen("rubric.txt", "w");
@@ -181,6 +181,7 @@ int main(int argc, char *argv[]) {
     }
 
     //Create semaphore for rubric
+    sem_unlink("/sem_rubric");
     sem_t *sem_rubric = sem_open("/sem_rubric", O_CREAT, 0644, 1);
     if(sem_rubric == SEM_FAILED) {
         perror("Failed to create semaphore for rubric");
@@ -188,6 +189,7 @@ int main(int argc, char *argv[]) {
     }
 
     //Create and initialize semaphore for exam
+    sem_unlink("/sem_exam");
     sem_t *sem_exam = sem_open("/sem_exam", O_CREAT, 0644, 1);
     if(sem_exam == SEM_FAILED) {
         perror("Failed to create semaphore for rubric");
