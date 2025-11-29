@@ -6,7 +6,6 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
 #include <sys/mman.h>
 #include <time.h>
 
@@ -17,7 +16,7 @@
  * - If change is needed, character corresponding to a question is changed to the next ASCII code
  */
 void iterate_rubric(int ID, Rubric *rubric) {
-    srand(time(NULL) + get_pid()); //seeds the random number generator with current time
+    srand(time(NULL) + getpid()); //seeds the random number generator with current time
 
     printf("TA %d is accessing the rubric\n", ID);
 
@@ -46,7 +45,6 @@ void iterate_rubric(int ID, Rubric *rubric) {
 
     printf("TA %d is done accessing the rubric\n", ID);
 }
-
 
 
 int main(int argc, char *argv[]) {
