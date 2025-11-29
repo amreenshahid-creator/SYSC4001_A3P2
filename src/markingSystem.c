@@ -8,6 +8,39 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <time.h>
+#include <fcntl.h>
+
+
+/**
+ * Loads the given exam number into shared memory
+ */
+bool load_exam(Exam *shared_mem_exam, int exam_num) {
+    char filename[64];
+    sprintf(filename, "exams/exam%d.txt", exam_num);
+
+    //Open the file for reading
+    FILE *file = fopen(filename, "r");
+
+    char line[256];
+    fgets(line, sizeof(line), file);
+    strncpy(shared_mem_exam->stud, line, sizeof(shared_mem_exam->stud) - 1);
+    shared_mem_exam->stud[sizeof(shared_mem_exam->stud) - 1] = '\0'; //Ensure null termination
+
+    for(int i = 0; i < NUM; i++) {
+        shared_mem_exam->marked[i] = false;
+    }
+    fclose(file);
+
+    //Check if current exam is for student number 9999
+    if(strcmp(shared_mem_exam->stud, "9999") == 0) {
+        return false;
+    }  
+
+    //If not, load exam
+    else {
+        return true;
+    }
+}
 
 
 /**
@@ -16,10 +49,7 @@
  * - If change is needed, character corresponding to a question is changed to the next ASCII code
  */
 void iterate_rubric(int ID, Rubric *rubric) {
-    srand(time(NULL) + getpid()); //seeds the random number generator with current time
-
     printf("TA %d is accessing the rubric\n", ID);
-
 
     for(int i = 0; i < NUM; i++) {
         float delay = 0.5 + (rand() % 501) / 1000; //random delay between 0.5 and 1.0 seconds
@@ -44,6 +74,41 @@ void iterate_rubric(int ID, Rubric *rubric) {
     }
 
     printf("TA %d is done accessing the rubric\n", ID);
+}
+
+
+/**
+ * After reviewing rubric, the TA will start marking the exam
+ */
+void mark(int ID, Exam *exam) {
+    int count = 0; //Count of marked questions
+
+    //Finishes once student number 9999 is reached
+    if(strcmp(exam ->stud, "9999") == 0) {
+        exit(0);
+    }
+
+    printf("TA %d is accessing %s's exam\n", ID, exam -> stud);
+
+    //Keep marking until all questions are marked
+    while(count < NUM) {
+    
+        //Check each question
+        for(int i = 0; i < NUM; i++) {
+
+            //Checks if the current question is unmarked
+            if(!exam -> marked[i]) {
+                printf("TA %d is marking question %d of %s's exam\n", ID, i + 1,  exam -> stud);
+
+                float delay = 1.0 + (rand() % 1001) / 1000; //random delay between 1.0 and 2.0 seconds
+                usleep(delay * 1000000); 
+
+                exam -> marked[i] = true;
+                count++;
+
+            }
+        }
+    }
 }
 
 
@@ -74,15 +139,23 @@ int main(int argc, char *argv[]) {
     }
 
     load_rubric("rubric.txt", shared_mem_rubric);   //load rubric file into shared memory
-    load_exams("exams/exam1.txt", shared_mem_exam); //load first exam file into shared memory   
     //----------------------------------------------------------------------------------------//
 
     //Create processses for each TA using fork
     for(int i = 1; i <= TA; i++) {
         pid_t pid = fork();
 
-        if(pid == 0) { //Child Process
-            iterate_rubric(i, shared_mem_rubric);
+        //Child Process
+        if(pid == 0) { 
+            srand(time(NULL) + getpid()); //seeds the random number generator with current time
+            int exam_num = 1;
+
+            while(load_exam(shared_mem_exam, exam_num)) {   //load exam file into shared memory   
+                iterate_rubric(i, shared_mem_rubric);
+                mark(i, shared_mem_exam);
+                exam_num++;
+            }
+
             exit(0); 
         }
 
