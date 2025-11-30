@@ -95,9 +95,6 @@ void iterate_rubric(int ID, Rubric *rubric) {
             char curr_answer = prev_answer + 1; 
             rubric->ans[i] = curr_answer;
 
-            printf("TA %d changed rubric for question %d\n", ID, i + 1);
-            printf("   Previous answer: %c\n   Current answer: %c\n", prev_answer, curr_answer);
-
             //SAVE CHANGES TO RUBRIC, write to file
             FILE *file = fopen("rubric.txt", "w");
 
@@ -107,6 +104,9 @@ void iterate_rubric(int ID, Rubric *rubric) {
             }
 
             fclose(file);
+
+            printf("TA %d changed rubric for question %d\n", ID, i + 1);
+            printf("   Previous answer: %c\n   Current answer: %c\n", prev_answer, curr_answer);
         }
 
         //If no change, continue
@@ -151,6 +151,7 @@ void mark(int ID, Exam *exam) {
             }
         }
     }
+    printf("TA %d is done accessing %s's exam\n", ID, exam -> stud);
 }
 
 
